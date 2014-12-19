@@ -6,6 +6,7 @@ window.embetter = {};
 
 window.embetter.debug = true;
 window.embetter.curEmbeds = [];
+window.embetter.mobileScrollTimeout = null;
 
 window.embetter.utils = {
   /////////////////////////////////////////////////////////////
@@ -26,7 +27,6 @@ window.embetter.utils = {
   playerHTML: function(service, mediaUrl, thumbnail, id) {
     return '<div class="embetter-container" ' + service.dataAttribute + '="' + id + '">\
         <a href="' + mediaUrl + '" target="_blank"><img src="' + thumbnail + '"></a>\
-        <button>Play</button>\
       </div>';
   },
   playerCode: function(htmlStr) {
@@ -45,31 +45,57 @@ window.embetter.utils = {
   /////////////////////////////////////////////////////////////
   // MEDIA PLAYERS PAGE MANAGEMENT
   /////////////////////////////////////////////////////////////
-  initMediaPlayers: function(el, services, embedsArray) {
-    embedsArray = embedsArray || window.embetter.curEmbeds;
+  initMediaPlayers: function(el, services) {
     for (var i = 0; i < services.length; i++) {
       var service = services[i];
       var serviceEmbedContainers = el.querySelectorAll('div['+service.dataAttribute+']');
       for(var j=0; j < serviceEmbedContainers.length; j++) {
-        window.embetter.utils.initPlayer(serviceEmbedContainers[j], service, embedsArray);
+        window.embetter.utils.initPlayer(serviceEmbedContainers[j], service);
       }
     }
-  },
-  initPlayer: function(embedEl, service, embedsArray) {
-    embedsArray = embedsArray || window.embetter.curEmbeds;
-    embedsArray.push( new window.embetter.EmbetterPlayer(embedEl, service) );
-  },
-  disposeVideoPlayers: function(embedsArray) {
-    embedsArray = embedsArray || window.embetter.curEmbeds;
-    for (var i = 0; i < embedsArray.length; i++) {
-      embedsArray[i].dispose();
+    // handle mobile auto-embed on scroll
+    if(navigator.userAgent.toLowerCase().match(/iphone|ipad|ipod|android/)) {
+      window.addEventListener('scroll', window.embetter.utils.scrollListener);
+      // force scroll to trigger listener on page load
+      window.scroll(window.scrollX, window.scrollY+1); 
+      window.scroll(window.scrollX, window.scrollY-1);
     };
+  },
+  scrollListener: function() {
+    // throttled scroll listener
+    if(window.embetter.mobileScrollTimeout != null) {
+      window.clearTimeout(window.embetter.mobileScrollTimeout);
+    }
+    // check to see if embeds are on screen. if so, embed! otherwise, unembed
+    window.embetter.mobileScrollTimeout = setTimeout(function() {
+      for (var i = 0; i < window.embetter.curEmbeds.length; i++) {
+        var player = window.embetter.curEmbeds[i];
+        var playerRect = player.el.getBoundingClientRect();
+        if(playerRect.bottom < window.innerHeight && playerRect.top > 0) {
+          player.embedMedia();
+        } else {
+          player.unembedMedia();
+        }
+      };
+    }, 500);
+  },
+  initPlayer: function(embedEl, service) {
+    if(embedEl.classList.contains('embetter-player-ready') == true) {
+      console.log('already inited: ', embedEl);
+      return;
+    }
+    window.embetter.curEmbeds.push( new window.embetter.EmbetterPlayer(embedEl, service) );
+  },
+  disposeVideoPlayers: function() {
+    for (var i = 0; i < window.embetter.curEmbeds.length; i++) {
+      window.embetter.curEmbeds[i].dispose();
+    };
+    window.removeEventListener('scroll', window.embetter.utils.scrollListener);
   },
   /////////////////////////////////////////////////////////////
   // BUILD PLAYER FROM PASTE
   /////////////////////////////////////////////////////////////
-  buildPlayerFromServiceURL: function(el, string, services, embedsArray) {
-    embedsArray = embedsArray || window.embetter.curEmbeds;
+  buildPlayerFromServiceURL: function(el, string, services) {
     for (var i = 0; i < services.length; i++) {
       var service = services[i];
       if(string.match(service.regex) != null) {
@@ -189,7 +215,7 @@ window.embetter.services.soundcloud = {
   regex: window.embetter.utils.buildRegex('(?:soundcloud.com|snd.sc)\/(\\S*)(?:\\s|\\?|#)'),
   embed: function(id, w, h, autoplay) { 
     var autoplayQuery = (autoplay == true) ? '&amp;auto_play=true' : '';
-    return '<iframe width="100%" height="600" scrolling="no" frameborder="no" src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/'+ id + autoplayQuery +'&amp;hide_related=false&amp;show_comments=true&amp;show_user=true&amp;show_reposts=false&amp;visual=true"></iframe>';
+    return '<iframe width="100%" height="600" scrolling="no" frameborder="no" src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/'+ id + autoplayQuery +'&amp;hide_related=false&amp;color=373737&amp;show_comments=false&amp;show_user=true&amp;show_reposts=false&amp;visual=true"></iframe>';
   },
   getData: function(mediaUrl, callback) {
     reqwest({
@@ -308,6 +334,58 @@ window.embetter.services.dailymotion = {
 };
 
 
+/////////////////////////////////////////////////////////////
+// RDIO
+/////////////////////////////////////////////////////////////
+window.embetter.services.rdio = {
+  type: 'rdio',
+  dataAttribute: 'data-rdio-id',
+  regex: window.embetter.utils.buildRegex('rdio.com\/(\\S*)(?:\\s|\\?|#)'),
+  embed: function(id, w, h, autoplay) { 
+    // var autoplayQuery = (autoplay == true) ? '?autoplay=' : '';
+    var autoplayQuery = '';
+    return '<iframe width="100%" height="400" src="https://rd.io/i/'+ id + '/' + autoplayQuery +'" frameborder="0"></iframe>';
+  },
+  getData: function(mediaUrl, callback) {
+    reqwest({
+      url: 'http://www.rdio.com/api/oembed/?format=json&url='+ mediaUrl,
+      type: 'jsonp',
+      error: function (err) { 
+        console.log('rdio error');
+      }, 
+      success: function (data) {
+        callback(data);
+      }
+    })
+  },
+  link: function(path) {
+    return 'http://www.rdio.com/' + path;
+  },
+  buildFromText: function(text, containerEl) {
+    var self = this;
+    var soundURL = text; // this.link(text.match(this.regex)[1]);
+    if(soundURL != null) {
+      this.getData(soundURL, function(data) {
+        var thumbnail = data.thumbnail_url;
+        var embedCode = data.html;
+        var soundId = embedCode.match(/https:\/\/rd.io\/i\/(\S*)\//)[1];
+        if(thumbnail && soundId) {
+          var newEmbedHTML = window.embetter.utils.playerHTML(self, soundURL, thumbnail, soundId);
+          var newEmbedEl = window.embetter.utils.stringToDomElement(newEmbedHTML);
+          containerEl.appendChild(newEmbedEl);
+          window.embetter.utils.initPlayer(newEmbedEl, self, window.embetter.curEmbeds);
+          // show embed code
+          var newEmbedCode = window.embetter.utils.playerCode(newEmbedHTML);
+          var newEmbedCodeEl = window.embetter.utils.stringToDomElement(newEmbedCode);
+          containerEl.appendChild(newEmbedCodeEl);
+        } else {
+          console.log('There was a problem with your Rdio link.');
+        }
+      });
+    }
+  }
+};
+
 
 
 /////////////////////////////////////////////////////////////
@@ -318,23 +396,17 @@ window.embetter.curPlayer = null;
 
 window.embetter.EmbetterPlayer = function(el, serviceObj) {
   this.el = el;
+  this.el.classList.add('embetter-player-ready');
   this.serviceObj = serviceObj;
   this.id = this.el.getAttribute(serviceObj.dataAttribute);
   this.thumbnail = this.el.querySelector('img');
   this.playerEl = null;
-
   this.buildPlayButton();
-
-  // add mobile auto-embed
-  console.warn('Mobile embeds should auto-embed when scrolled into view');
-  if(navigator.userAgent.toLowerCase().match(/iphone|ipad|ipod/)) {
-    this.embedMedia();
-  };
 };
 
 window.embetter.EmbetterPlayer.prototype.buildPlayButton = function() {
   this.playButton = document.createElement('button');
-  this.playButton.innerHTML = 'Play'
+  this.playButton.innerHTML = 'Play';
   this.el.appendChild(this.playButton);
 
   var self = this;
@@ -344,7 +416,7 @@ window.embetter.EmbetterPlayer.prototype.buildPlayButton = function() {
 
 window.embetter.EmbetterPlayer.prototype.play = function() {
   if(window.embetter.curPlayer != null) {
-    window.embetter.curPlayer.stop();
+    window.embetter.curPlayer.unembedMedia();
     window.embetter.curPlayer = null;
   }
 
@@ -354,19 +426,23 @@ window.embetter.EmbetterPlayer.prototype.play = function() {
   window.embetter.curPlayer = this;
 };
 
-window.embetter.EmbetterPlayer.prototype.stop = function() {
-  this.playerEl.parentNode.removeChild(this.playerEl);
+window.embetter.EmbetterPlayer.prototype.unembedMedia = function() {
+  if(this.playerEl != null && this.playerEl.parentNode != null) {
+    this.playerEl.parentNode.removeChild(this.playerEl);
+  }
   this.el.classList.remove('playing');
 };
 
   // embed if mobile
 window.embetter.EmbetterPlayer.prototype.embedMedia = function() {
-  if(this.id != null) this.playerEl = window.embetter.utils.stringToDomElement(getYouTubeEmbed(this.id, this.thumbnail.width, this.thumbnail.height, false));
+  if(this.el.classList.contains('playing') == true) return;
+  if(this.id != null) this.playerEl = window.embetter.utils.stringToDomElement(this.serviceObj.embed(this.id, this.thumbnail.width, this.thumbnail.height, false));
   this.el.appendChild(this.playerEl);
+  this.el.classList.add('playing');
 };
 
 window.embetter.EmbetterPlayer.prototype.dispose = function() {
-  this.stop();
+  this.unembedMedia();
   this.playButton.removeEventListener('click', this.playHandler);
 };
 
