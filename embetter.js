@@ -10,6 +10,7 @@
   embetter.debug = true;
   embetter.curEmbeds = [];
   embetter.mobileScrollTimeout = null;
+  embetter.mobileScrollSetup = false;
 
   embetter.utils = {
     /////////////////////////////////////////////////////////////
@@ -58,8 +59,9 @@
         }
       }
       // handle mobile auto-embed on scroll
-      if(navigator.userAgent.toLowerCase().match(/iphone|ipad|ipod|android/)) {
+      if(navigator.userAgent.toLowerCase().match(/iphone|ipad|ipod|android/) && embetter.mobileScrollSetup == false) {
         window.addEventListener('scroll', embetter.utils.scrollListener);
+        embetter.mobileScrollSetup = true;
         // force scroll to trigger listener on page load
         window.scroll(window.scrollX, window.scrollY+1); 
         window.scroll(window.scrollX, window.scrollY-1);
@@ -87,17 +89,23 @@
       if(embedEl.classList.contains('embetter-player-ready') == true) return;
       embetter.curEmbeds.push( new embetter.EmbetterPlayer(embedEl, service) );
     },
-    disposeVideoPlayers: function() {
+    unembedPlayers: function() {
+      for (var i = 0; i < embetter.curEmbeds.length; i++) {
+        embetter.curEmbeds[i].unembedMedia();
+      };
+    },
+    disposePlayers: function() {
       for (var i = 0; i < embetter.curEmbeds.length; i++) {
         embetter.curEmbeds[i].dispose();
       };
       window.removeEventListener('scroll', embetter.utils.scrollListener);
+      embetter.curEmbeds.splice(0, embetter.curEmbeds.length-1);
     },
     disposeDetachedPlayers: function() {
       // dispose any players no longer in the DOM
       for (var i = embetter.curEmbeds.length - 1; i >= 0; i--) {
         var embed = embetter.curEmbeds[i];
-        if(document.body.contains(embed.el) == false) {
+        if(document.body.contains(embed.el) == false || embed.el == null) {
           embed.dispose();
           delete embetter.curEmbeds.splice(i,1);
         }
@@ -224,7 +232,7 @@
   embetter.services.soundcloud = {
     type: 'soundcloud',
     dataAttribute: 'data-soundcloud-id',
-    regex: embetter.utils.buildRegex('(?:soundcloud.com|snd.sc)\\/([a-zA-Z_\\-]*\\/[a-zA-Z_\\-]*)'),
+    regex: embetter.utils.buildRegex('(?:soundcloud.com|snd.sc)\\/([a-zA-Z0-9_\\-]*\\/[a-zA-Z0-9_\\-]*)'),
     embed: function(id, w, h, autoplay) { 
       var autoplayQuery = (autoplay == true) ? '&amp;auto_play=true' : '';
       return '<iframe width="100%" height="600" scrolling="no" frameborder="no" src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/'+ id + autoplayQuery +'&amp;hide_related=false&amp;color=373737&amp;show_comments=false&amp;show_user=true&amp;show_reposts=false&amp;visual=true"></iframe>';
@@ -399,6 +407,60 @@
   };
 
 
+  /////////////////////////////////////////////////////////////
+  // MIXCLOUD
+  /////////////////////////////////////////////////////////////
+  embetter.services.mixcloud = {
+    type: 'mixcloud',
+    dataAttribute: 'data-mixcloud-id',
+    regex: embetter.utils.buildRegex('(?:mixcloud.com)\\/([a-zA-Z0-9_\\-]*\\/[a-zA-Z0-9_\\-]*)'),
+    embed: function(id, w, h, autoplay) { 
+      var autoplayQuery = (autoplay == true) ? '&amp;autoplay=true' : '';
+      return '<iframe width="300" height="300" src="https://www.mixcloud.com/widget/iframe/?feed=http%3A%2F%2Fwww.mixcloud.com%2F'+ escape(id) + '&amp;replace=0&amp;hide_cover=&amp;light=&amp;hide_artwork=&amp;stylecolor=#ffffff&amp;embed_type=widget_standard&amp;hide_tracklist='+ autoplayQuery +'" frameborder="0"></iframe>';
+    },
+    getData: function(mediaUrl, callback) {
+      reqwest({
+        url: 'http://www.mixcloud.com/oembed/?url='+ mediaUrl +'&format=json',
+        type: 'jsonp',
+        jsonpCallback: 'foo',
+        jsonpCallbackName: 'bar',
+        error: function (err) { 
+          console.log('mixcloud error', err);
+        }, 
+        success: function (data) {
+          callback(data);
+        }
+      })
+    },
+    link: function(id) {
+      return 'https://www.mixcloud.com/' + id;
+    },
+    buildFromText: function(text, containerEl) {
+      var self = this;
+          console.log('text', text);
+      var soundURL = this.link(text.match(this.regex)[1]);
+      if(soundURL != null) {
+        this.getData(soundURL, function(data) {
+          console.log('data', data);
+          var thumbnail = data.image;
+          if(thumbnail) {
+            var soundId = data.id;
+            var newEmbedHTML = embetter.utils.playerHTML(self, soundURL, thumbnail, soundId);
+            var newEmbedEl = embetter.utils.stringToDomElement(newEmbedHTML);
+            containerEl.appendChild(newEmbedEl);
+            embetter.utils.initPlayer(newEmbedEl, self, embetter.curEmbeds);
+            // show embed code
+            var newEmbedCode = embetter.utils.playerCode(newEmbedHTML);
+            var newEmbedCodeEl = embetter.utils.stringToDomElement(newEmbedCode);
+            containerEl.appendChild(newEmbedCodeEl);
+          } else {
+            // console.log('There was a problem with your mixcloud link.');
+          }
+        });
+      }
+    }
+  };
+
 
   /////////////////////////////////////////////////////////////
   // MEDIA PLAYER INSTANCE
@@ -417,8 +479,7 @@
   };
 
   embetter.EmbetterPlayer.prototype.buildPlayButton = function() {
-    this.playButton = document.createElement('button');
-    this.playButton.innerHTML = 'Play';
+    this.playButton = document.createElement('div');
     this.el.appendChild(this.playButton);
 
     var self = this;
