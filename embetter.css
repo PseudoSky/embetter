@@ -7,6 +7,7 @@
 
   background-color: transparent;
   position: relative;
+  display: block;
   overflow: hidden;
 }
 
@@ -32,12 +33,21 @@
 }
 
 .embetter:hover img {
-  opacity: 0.8;
+  opacity: 0.9;
   -webkit-transform: scale(1.02);
   -moz-transform: scale(1.02);
   -ms-transform: scale(1.02);
   -o-transform: scale(1.02);
   transform: scale(1.02);
+}
+
+.embetter.embetter-static:hover img {
+  opacity: 1;
+  -webkit-transform: none;
+  -moz-transform: none;
+  -ms-transform: none;
+  -o-transform: none;
+  transform: none;
 }
 
 .embetter.embetter-playing img {
