@@ -233,10 +233,10 @@
   embetter.services.soundcloud = {
     type: 'soundcloud',
     dataAttribute: 'data-soundcloud-id',
-    regex: embetter.utils.buildRegex('(?:soundcloud.com|snd.sc)\\/([a-zA-Z0-9_-]*\\/[a-zA-Z0-9_-]*)'),
+    regex: embetter.utils.buildRegex('(?:soundcloud.com|snd.sc)\\/([a-zA-Z0-9_-]*(?:\\/sets)?(?:\\/groups)?\\/[a-zA-Z0-9_-]*)'),
     embed: function(id, w, h, autoplay) {
       var autoplayQuery = (autoplay == true) ? '&amp;auto_play=true' : '';
-      return '<iframe width="100%" height="600" scrolling="no" frameborder="no" src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/'+ id + autoplayQuery +'&amp;hide_related=false&amp;color=373737&amp;show_comments=false&amp;show_user=true&amp;show_reposts=false&amp;visual=true"></iframe>';
+      return '<iframe width="100%" height="600" scrolling="no" frameborder="no" src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/'+ id + autoplayQuery +'&amp;hide_related=false&amp;color=373737&amp;show_comments=false&amp;show_user=true&amp;show_reposts=false&amp;visual=true"></iframe>';
     },
     getData: function(mediaUrl, callback) {
       reqwest({
@@ -253,18 +253,34 @@
     link: function(id) {
       return 'https://soundcloud.com/' + id;
     },
+    largerThumbnail: function(thumbnail) {
+      return thumbnail.replace('large.jpg', 't500x500.jpg');
+    },
     buildFromText: function(text, containerEl) {
       var self = this;
       var soundURL = this.link(text.match(this.regex)[1]);
       if(soundURL != null) {
         this.getData(soundURL, function(data) {
+          // progressively fall back from sound image to user image to group creator image. grab larger image where possible
           var thumbnail = data.artwork_url;
-          var userAvatar = (data.user) ? data.user.avatar_url : null;
-          if(thumbnail == null) thumbnail = userAvatar;
+          if(thumbnail) thumbnail = self.largerThumbnail(thumbnail);
+
+          if(thumbnail == null) {
+            thumbnail = (data.user) ? data.user.avatar_url : null;
+            if(thumbnail) thumbnail = self.largerThumbnail(thumbnail);
+          }
+
+          if(thumbnail == null) {
+            thumbnail = (data.creator) ? data.creator.avatar_url : null;
+            if(thumbnail) thumbnail = self.largerThumbnail(thumbnail);
+          }
+
           if(thumbnail) {
-            thumbnail = thumbnail.replace('large.jpg', 't500x500.jpg')
-            // console.warn('Soundcloud thumbnail string replacement should validate that larger image exists');
             var soundId = data.id;
+            if(soundURL.indexOf('/sets/') != -1) soundId = 'playlists/' + soundId;
+            else if(soundURL.indexOf('/groups/') != -1) soundId = 'groups/' + soundId;
+            else soundId = 'tracks/' + soundId;
+
             var newEmbedHTML = embetter.utils.playerHTML(self, soundURL, thumbnail, soundId);
             var newEmbedEl = embetter.utils.stringToDomElement(newEmbedHTML);
             containerEl.appendChild(newEmbedEl);
@@ -460,46 +476,6 @@
       }
     }
   };
-
-
-  /////////////////////////////////////////////////////////////
-  // VINE
-  // https://vine.co/v/Ml16lZVTTxe
-  // <iframe class="vine-embed pinged loaded mostly-in-view in-view" src="https://vine.co/v/Ml16lZVTTxe/embed/simple" width="600" height="600" frameborder="0"></iframe><script async src="//platform.vine.co/static/scripts/embed.js" charset="utf-8"></script>
-  // <iframe class="vine-embed vine-embed pinged loaded mostly-in-view in-view" src="https://vine.co/v/bjHh0zHdgZT/embed/simple?audio=1&autoplay=1" width="600" height="600" frameborder="0"></iframe>
-  // https://platform.vine.co/static/scripts/embed.js - look at this script for iframe communication
-  /////////////////////////////////////////////////////////////
-  embetter.services.vine = {
-    type: 'vine',
-    dataAttribute: 'data-vine-id',
-    regex: embetter.utils.buildRegex('vine.co\/v\/([a-zA-Z0-9-]*)'),
-    embed: function(id, w, h, autoplay) {
-      // return '<iframe width="100%" height="600" scrolling="no" frameborder="no" src="https://vine.co/v/'+ id +'/embed/"></iframe>';
-      return '<iframe class="vine-embed vine-embed pinged loaded mostly-in-view in-view" src="https://vine.co/v/'+ id +'/embed/simple?audio=1&autoplay=1" width="100%" height="600" frameborder="0"></iframe>';
-    },
-    getData: function(id) {
-      return 'https://vine.co/v/' + id +'/media/?size=l';
-    },
-    link: function(id) {
-      return 'https://vine.co/v/' + id +'/';
-    },
-    buildFromText: function(text, containerEl) {
-      var mediaId = text.match(this.regex)[1];
-      var mediaURL = this.link(mediaId);
-      if(mediaURL != null) {
-        var thumbnail = this.getData(mediaId);
-        var newEmbedHTML = embetter.utils.playerHTML(this, mediaURL, thumbnail, mediaId);
-        var newEmbedEl = embetter.utils.stringToDomElement(newEmbedHTML);
-        containerEl.appendChild(newEmbedEl);
-        embetter.utils.initPlayer(newEmbedEl, this, embetter.curEmbeds);
-        // show embed code
-        var newEmbedCode = embetter.utils.playerCode(newEmbedHTML);
-        var newEmbedCodeEl = embetter.utils.stringToDomElement(newEmbedCode);
-        containerEl.appendChild(newEmbedCodeEl);
-      }
-    }
-  };
-
 
 
   /////////////////////////////////////////////////////////////
