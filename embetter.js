@@ -73,14 +73,17 @@
         window.clearTimeout(embetter.mobileScrollTimeout);
       }
       // check to see if embeds are on screen. if so, embed! otherwise, unembed
+      // exclude codepen since we don't know what might execute
       embetter.mobileScrollTimeout = setTimeout(function() {
         for (var i = 0; i < embetter.curEmbeds.length; i++) {
           var player = embetter.curEmbeds[i];
-          var playerRect = player.el.getBoundingClientRect();
-          if(playerRect.bottom < window.innerHeight && playerRect.top > 0) {
-            player.embedMedia();
-          } else {
-            player.unembedMedia();
+          if(player.getType() != 'codepen') {
+            var playerRect = player.el.getBoundingClientRect();
+            if(playerRect.bottom < window.innerHeight && playerRect.top > 0) {
+              player.embedMedia();
+            } else {
+              player.unembedMedia();
+            }
           }
         };
       }, 500);
@@ -90,9 +93,11 @@
       if(embedEl.classList.contains('embetter-static') == true) return;
       embetter.curEmbeds.push( new embetter.EmbetterPlayer(embedEl, service) );
     },
-    unembedPlayers: function() {
+    unembedPlayers: function(containerEl) {
       for (var i = 0; i < embetter.curEmbeds.length; i++) {
-        embetter.curEmbeds[i].unembedMedia();
+        if(containerEl.contains(embetter.curEmbeds[i].el)) {
+          embetter.curEmbeds[i].unembedMedia();
+        }
       };
     },
     disposePlayers: function() {
@@ -100,6 +105,7 @@
         embetter.curEmbeds[i].dispose();
       };
       window.removeEventListener('scroll', embetter.utils.scrollListener);
+      embetter.mobileScrollSetup = false;
       embetter.curEmbeds.splice(0, embetter.curEmbeds.length-1);
     },
     disposeDetachedPlayers: function() {
@@ -145,7 +151,7 @@
     regex: /(?:.+?)?(?:\/v\/|watch\/|\?v=|\&v=|youtu\.be\/|\/v=|^youtu\.be\/)([a-zA-Z0-9_-]{11})+/,
     embed: function(id, w, h, autoplay) {
       var autoplayQuery = (autoplay == true) ? '&autoplay=1' : '';
-      return '<iframe class="video" width="'+ w +'" height="'+ h +'" src="https://www.youtube.com/embed/'+ id +'?rel=0&suggestedQuality=hd720'+ autoplayQuery +'" frameborder="0" webkitAllowFullScreen mozallowfullscreen allowfullscreen></iframe>';
+      return '<iframe class="video" width="'+ w +'" height="'+ h +'" src="https://www.youtube.com/embed/'+ id +'?rel=0&suggestedQuality=hd720'+ autoplayQuery +'" frameborder="0" scrolling="no" webkitAllowFullScreen mozallowfullscreen allowfullscreen></iframe>';
     },
     getData: function(id) {
       return 'http://img.youtube.com/vi/'+ id +'/0.jpg';
@@ -182,7 +188,7 @@
     regex: embetter.utils.buildRegex('vimeo.com\/(\\S*)'),
     embed: function(id, w, h, autoplay) {
       var autoplayQuery = (autoplay == true) ? '&amp;autoplay=1' : '';
-      return '<iframe src="//player.vimeo.com/video/'+ id +'?title=0&amp;byline=0&amp;portrait=0&amp;color=ffffff'+ autoplayQuery +'" width="'+ w +'" height="'+ h +'" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>';
+      return '<iframe src="//player.vimeo.com/video/'+ id +'?title=0&amp;byline=0&amp;portrait=0&amp;color=ffffff'+ autoplayQuery +'" width="'+ w +'" height="'+ h +'" frameborder="0" scrolling="no" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>';
     },
     getData: function(mediaUrl, callback) {
       var videoId = mediaUrl.split('vimeo.com/')[1];
@@ -236,6 +242,7 @@
     regex: embetter.utils.buildRegex('(?:soundcloud.com|snd.sc)\\/([a-zA-Z0-9_-]*(?:\\/sets)?(?:\\/groups)?\\/[a-zA-Z0-9_-]*)'),
     embed: function(id, w, h, autoplay) {
       var autoplayQuery = (autoplay == true) ? '&amp;auto_play=true' : '';
+      if(!id.match(/^(playlist|track|group)/)) id = 'tracks/' + id; // if no tracks/sound-id, prepend tracks/ (mostly for legacy compatibility)
       return '<iframe width="100%" height="600" scrolling="no" frameborder="no" src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/'+ id + autoplayQuery +'&amp;hide_related=false&amp;color=373737&amp;show_comments=false&amp;show_user=true&amp;show_reposts=false&amp;visual=true"></iframe>';
     },
     getData: function(mediaUrl, callback) {
@@ -346,7 +353,7 @@
     regex: embetter.utils.buildRegex('dailymotion.com\/video\/([a-zA-Z0-9-_]*)'),
     embed: function(id, w, h, autoplay) {
       var autoplayQuery = (autoplay == true) ? '?autoPlay=1' : '';
-      return '<iframe class="video" width="'+ w +'" height="'+ h +'" src="//www.dailymotion.com/embed/video/'+ id + autoplayQuery +'" frameborder="0" webkitAllowFullScreen mozallowfullscreen allowfullscreen></iframe>';
+      return '<iframe class="video" width="'+ w +'" height="'+ h +'" src="//www.dailymotion.com/embed/video/'+ id + autoplayQuery +'" frameborder="0" scrolling="no" webkitAllowFullScreen mozallowfullscreen allowfullscreen></iframe>';
     },
     getData: function(id) {
       return 'http://www.dailymotion.com/thumbnail/video/'+ id;
@@ -383,7 +390,7 @@
     embed: function(id, w, h, autoplay) {
       // var autoplayQuery = (autoplay == true) ? '?autoplay=' : '';
       var autoplayQuery = '';
-      return '<iframe width="100%" height="400" src="https://rd.io/i/'+ id + '/' + autoplayQuery +'" frameborder="0"></iframe>';
+      return '<iframe width="100%" height="400" src="https://rd.io/i/'+ id + '/' + autoplayQuery +'" frameborder="0" scrolling="no"></iframe>';
     },
     getData: function(mediaUrl, callback) {
       reqwest({
@@ -432,11 +439,10 @@
   embetter.services.mixcloud = {
     type: 'mixcloud',
     dataAttribute: 'data-mixcloud-id',
-    regex: embetter.utils.buildRegex('(?:mixcloud.com)\\/([a-zA-Z0-9_\\-]*\\/[a-zA-Z0-9_\\-]*)'),
+    regex: embetter.utils.buildRegex('(?:mixcloud.com)\\/(.*\\/.*)'),
     embed: function(id, w, h, autoplay) {
       var autoplayQuery = (autoplay == true) ? '&amp;autoplay=true' : '';
-      console.log(id);
-      return '<iframe width="660" height="180" src="https://www.mixcloud.com/widget/iframe/?feed=http%3A%2F%2Fwww.mixcloud.com%2F' + escape(id) + '%2F&amp;replace=0&amp;hide_cover=1&amp;stylecolor=ffffff&amp;embed_type=widget_standard&amp;'+ autoplayQuery +'" frameborder="0"></iframe>';
+      return '<iframe width="660" height="180" src="https://www.mixcloud.com/widget/iframe/?feed=http%3A%2F%2Fwww.mixcloud.com%2F' + escape(id) + '%2F&amp;replace=0&amp;hide_cover=1&amp;stylecolor=ffffff&amp;embed_type=widget_standard&amp;'+ autoplayQuery +'" frameborder="0" scrolling="no"></iframe>';
     },
     getData: function(mediaUrl, callback) {
       reqwest({
@@ -479,6 +485,47 @@
 
 
   /////////////////////////////////////////////////////////////
+  // CODEPEN
+  /////////////////////////////////////////////////////////////
+  embetter.services.codepen = {
+    type: 'codepen',
+    dataAttribute: 'data-codepen-id',
+    regex: embetter.utils.buildRegex('(?:codepen.io)\\/([a-zA-Z0-9_\\-%]*\\/[a-zA-Z0-9_\\-%]*\\/[a-zA-Z0-9_\\-%]*)'),
+    embed: function(id, w, h, autoplay) {
+     id = id.replace('/pen/', '/embed/');
+     var user = id.split('/')[0];
+     var slugHash = id.split('/')[2];
+     return '<iframe src="//codepen.io/' + id + '?height=' + h + '&amp;theme-id=0&amp;slug-hash=' + slugHash + '&amp;default-tab=result&amp;user=' + user + '" frameborder="0" scrolling="no" allowtransparency="true" allowfullscreen="true"</iframe>';
+    },
+    getData: function(id) {
+      return 'http://codepen.io/' + id + '/image/large.png';
+    },
+    link: function(id) {
+      return 'http://codepen.io/' + id;
+    },
+    buildFromText: function(text, containerEl) {
+      var penId = text.match(this.regex)[1];
+      if(penId != null) {
+        // build embed
+        var videoURL = this.link(penId);
+        var videoThumbnail = this.getData(penId);
+        var newEmbedHTML = embetter.utils.playerHTML(this, videoURL, videoThumbnail, penId);
+        var newEmbedEl = embetter.utils.stringToDomElement(newEmbedHTML);
+        embetter.utils.initPlayer(newEmbedEl, this, embetter.curEmbeds);
+        containerEl.appendChild(newEmbedEl);
+        // show embed code
+        var newEmbedCode = embetter.utils.playerCode(newEmbedHTML);
+        var newEmbedCodeEl = embetter.utils.stringToDomElement(newEmbedCode);
+        containerEl.appendChild(newEmbedCodeEl);
+      }
+    }
+  };
+
+
+      }
+    }
+  };
+
   // MEDIA PLAYER INSTANCE
   /////////////////////////////////////////////////////////////
 
@@ -506,6 +553,10 @@
     var self = this;
     this.playHandler = function() { self.play(); }; // for event listener removal
     this.playButton.addEventListener('click', this.playHandler);
+  };
+
+  embetter.EmbetterPlayer.prototype.getType = function() {
+    return this.serviceObj.type;
   };
 
   embetter.EmbetterPlayer.prototype.play = function() {
