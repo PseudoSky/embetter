@@ -88,13 +88,13 @@
       embetter.mobileScrollTimeout = setTimeout(function() {
         for (var i = 0; i < embetter.curEmbeds.length; i++) {
           var player = embetter.curEmbeds[i];
-          if(player.getType() != 'codepen') {
-            var playerRect = player.el.getBoundingClientRect();
-            if(playerRect.bottom < window.innerHeight && playerRect.top > 0) {
+          var playerRect = player.el.getBoundingClientRect();
+          if(playerRect.top < window.innerHeight && playerRect.bottom > 0) {
+            if(player.getType() != 'codepen') {
               player.embedMedia(false);
-            } else {
-              player.unembedMedia();
             }
+          } else {
+            player.unembedMedia();
           }
         };
       }, 500);
@@ -370,24 +370,6 @@
 
 
   /////////////////////////////////////////////////////////////
-  // RDIO
-  /////////////////////////////////////////////////////////////
-  embetter.services.rdio = {
-    type: 'rdio',
-    dataAttribute: 'data-rdio-id',
-    regex: embetter.utils.buildRegex('rdio.com\/(\\S*)'),
-    embed: function(id, w, h, autoplay) {
-      // var autoplayQuery = (autoplay == true) ? '?autoplay=' : '';
-      var autoplayQuery = '';
-      return '<iframe width="100%" height="400" src="https://rd.io/i/'+ id + '/' + autoplayQuery +'" frameborder="0" scrolling="no"></iframe>';
-    },
-    link: function(path) {
-      return 'http://www.rdio.com/' + path;
-    }
-  };
-
-
-  /////////////////////////////////////////////////////////////
   // MIXCLOUD
   /////////////////////////////////////////////////////////////
   embetter.services.mixcloud = {
@@ -460,7 +442,7 @@
     regex: embetter.utils.buildRegex('(?:ustream.tv|ustre.am)\\/((?:(recorded|channel)\\/)?[a-zA-Z0-9_\\-%]*)'),
     embed: function(id, w, h, autoplay) {
       var autoplayQuery = (autoplay == true) ? '&amp;autoplay=true' : '';
-      return '<iframe width="480" height="300" src="https://www.ustream.tv/embed/' + id + '?v=3&amp;wmode=direct' + autoplayQuery + '" frameborder="0" scrolling="no" allowtransparency="true" allowfullscreen="true"></iframe>';
+      return '<iframe width="480" height="300" src="http://www.ustream.tv/embed/' + id + '?' + autoplayQuery + '" frameborder="0" scrolling="no" allowtransparency="true" allowfullscreen="true"></iframe>';
     },
     link: function(id) {
       return 'http://www.ustream.tv/'+id;
@@ -522,25 +504,6 @@
     },
     link: function(id) {
       return 'https://www.slideshare.net/' + id;
-    }
-  };
-
-
-  /////////////////////////////////////////////////////////////
-  // FLICKR
-  // http://*.flickr.com/photos/*
-  // http://flic.kr/p/*
-  /////////////////////////////////////////////////////////////
-  embetter.services.flickr = {
-    type: 'flickr',
-    dataAttribute: 'data-flickr-id',
-    regex: embetter.utils.buildRegex('flickr.com\\/photos\\/([a-zA-Z0-9_\\-%]*)\\/([a-zA-Z0-9_\\-%]*)'),
-    embed: function(id, w, h, autoplay) {
-      // return '<iframe width="'+ w +'" height="'+ h +'" src="'+ id + '" frameborder="0" webkitAllowFullScreen mozallowfullscreen allowfullscreen></iframe>';
-      return '<img class="img" width="'+ w +'" height="'+ h +'" src="'+ id + '">';
-    },
-    link: function(user, photoId) {
-      return 'https://www.flickr.com/photos/' + user + '/' + photoId + '/';
     }
   };
 
