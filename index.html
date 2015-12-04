@@ -28,11 +28,12 @@
     <div class="container">
       <h1>Embetter</h1>
       <h5>Because iframes are janky.</h5>
-      <p>Media embeds can quickly bog your site down, so why not lazy-load them? The basic Embetter "player" consists of a tiny template with a thumbnail image, a play button, and the essential data needed to construct the responsive iframe embed code. Add a dash of javascript &amp; css to your web page, and you have a simple, lightweight media player.</p>
+      <p>Media embeds can quickly bog your site down, so let's lazy-load them! The basic Embetter player consists of a tiny template with a progressively-enhanced thumbnail image, a play button, and the essential data needed to construct the responsive iframe embed code. Add a dash of javascript &amp; css to your web page, and you have a simple, lightweight media player.</p>
+      <p>Find the <a href="https://github.com/cacheflowe/embetter">Embetter code &amp; instructions on GitHub</a>.</p>
       <div class="row">
         <div class="twelve columns">
           <label for="pasteMediaUrl">Paste a media URL to build an Embetter player:</label>
-          <input class="u-full-width" type="email" placeholder="Vimeo, YouTube, Instagram, Soundcloud, Dailymotion, Imgur, or CodePen" id="pasteMediaUrl">
+          <input class="u-full-width" type="email" placeholder="Vimeo, YouTube, Instagram, Dailymotion, or CodePen URL" id="pasteMediaUrl">
         </div>
       </div>
       <div class="row">
@@ -46,34 +47,16 @@
     <script src="./embetter.js"></script>
     <script src="./embetter-builder.js"></script>
     <script>
+
       /////////////////////////////////////////////////////////////
       // scroll to next player when API callback starts playing it
-      // modified from: http://stackoverflow.com/questions/21474678/scrolltop-animation-without-jquery
       /////////////////////////////////////////////////////////////
-      var scrollToY = function(scrollDuration, scrollAmount) {
-        var scrollHeight = window.scrollY,
-            scrollStep = Math.PI / ( scrollDuration / 15 ),
-            cosParameter = scrollAmount / 2;
-        var destY = scrollHeight - scrollAmount,
-            scrollCount = 0,
-            scrollProgress = 0;
-        function step () {
-          setTimeout(function() {
-            scrollCount = scrollCount + 1;
-            scrollProgress = cosParameter - cosParameter * Math.cos( scrollCount * scrollStep );
-            window.scrollTo( 0, ( scrollHeight - scrollProgress ) );
-            if ( Math.abs(window.scrollY - destY) > 1.1 && scrollCount * scrollStep < Math.PI ) {
-              requestAnimationFrame(step);
-            }
-          }, 15 );
-        }
-        requestAnimationFrame(step);
-      };
+      // add easy-scroll.js
+      !function(){function o(o,n,r,t){return(o/=t/2)<1?r/2*o*o+n:-r/2*(--o*(o-2)-1)+n}function n(){i++,c>=i&&requestAnimationFrame(n);var r=i/c,e=l*o(r,0,1,1);window.scrollTo(0,Math.round(t-e))}var r={};window.easyScroll=r;var t,l,i,c;r.scrollByY=function(o,r){t=window.scrollY,l=r,i=0,c=Math.floor(o/16),requestAnimationFrame(n)},r.scrollToEl=function(o,n,t){r.scrollByY(o,-n.getBoundingClientRect().top+t)}}();
 
-      // enable API callbacks and scroll on next load
       window.embetter.apiEnabled = true;
       window.embetter.apiAutoplayCallback = function(playerEl) {
-        scrollToY(1000, window.scrollY - playerEl.offsetTop + 50);
+        window.easyScroll.scrollToEl(700, playerEl, 50);
       };
 
       /////////////////////////////////////////////////////////////
