@@ -48,7 +48,7 @@
   };
 
   embetter.utils.copyPropsToObject(embetter.services.youtube, {
-	getData: function(id) {
+	  getData: function(id) {
       return 'http://img.youtube.com/vi/'+ id +'/0.jpg';
     },
     buildFromText: function(text, containerEl) {
@@ -357,6 +357,54 @@
       }
     }
   });
+
+  embetter.utils.copyPropsToObject(embetter.services.giphy, {
+    getData: function(id) {
+      return 'https://media.giphy.com/media/' + id + '/giphy_s.gif';
+    },
+    buildFromText: function(text, containerEl, sampleData) {
+      var self = this;
+      var splitPath = text.split('/');
+      var longId = splitPath[splitPath.length - 1]; // get id, with extra dashed data
+      var dashedId = longId.split('-');
+      var giphyId = dashedId[dashedId.length - 1]; // get id without extra dashed data
+      if(giphyId != null) {
+        var giphyURL = this.link(longId);
+        var thumbnailUrl = this.getData(giphyId);
+        var gifURL = 'https://media.giphy.com/media/' + giphyId + '/giphy.gif'; // not used for now
+        embetter.utils.embedPlayerInContainer(containerEl, self, giphyURL, thumbnailUrl, giphyId);
+      }
+    }
+  });
+
+  // embetter.utils.copyPropsToObject(embetter.services.flickr, {
+  //   getData: function(mediaUrl, callback) {
+  //     reqwest({
+  //       url: 'http://localhost/embetter/vendor/proxy.php?csurl=' + escape('https://www.flickr.com/services/oembed/?url='+ mediaUrl +'&format=json'),
+  //       type: 'json',
+  //       error: function (err) {},
+  //       success: function (data) {
+  //         callback(data);
+  //       }
+  //     })
+  //   },
+  //   buildFromText: function(text, containerEl) {
+  //     var self = this;
+  //     var imageUser = text.match(this.regex)[1];
+  //     var imageId = text.match(this.regex)[2];
+  //     var flickrURL = this.link(imageUser, imageId);
+  //     if(flickrURL != null) {
+  //       var self = this;
+  //       this.getData(flickrURL, function(data) {
+  //         if(data.thumbnail_url) {
+  //           var thumbnail = data.thumbnail_url.replace("_s.jpg", "_m.jpg");
+  //           var imgId = data.url;
+  //           embetter.utils.embedPlayerInContainer(containerEl, self, flickrURL, thumbnail, imgId);
+  //         }
+  //       });
+  //     }
+  //   }
+  // });
 
 
 })();

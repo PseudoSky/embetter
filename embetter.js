@@ -509,6 +509,41 @@
 
 
   /////////////////////////////////////////////////////////////
+  // GIPHY
+  /////////////////////////////////////////////////////////////
+  embetter.services.giphy = {
+    type: 'giphy',
+    dataAttribute: 'data-giphy-id',
+    regex: embetter.utils.buildRegex('giphy.com\\/gifs\\/([a-zA-Z0-9_\\-%]*)'),
+    embed: function(id, w, h, autoplay) {
+      return '<iframe width="'+ w +'" height="'+ h +'" src="https://giphy.com/embed/'+ id + '/twitter/iframe" frameborder="0" webkitAllowFullScreen mozallowfullscreen allowfullscreen></iframe>';
+    },
+    link: function(dashedId) {
+      return 'https://giphy.com/gifs/' + dashedId;
+    }
+  };
+
+
+  // /////////////////////////////////////////////////////////////
+  // // FLICKR
+  // // http://*.flickr.com/photos/*
+  // // http://flic.kr/p/*
+  // /////////////////////////////////////////////////////////////
+  // embetter.services.flickr = {
+  //   type: 'flickr',
+  //   dataAttribute: 'data-flickr-id',
+  //   regex: embetter.utils.buildRegex('flickr.com\\/photos\\/([a-zA-Z0-9_\\-%]*)\\/([a-zA-Z0-9_\\-%]*)'),
+  //   embed: function(id, w, h, autoplay) {
+  //     // return '<iframe width="'+ w +'" height="'+ h +'" src="'+ id + '" frameborder="0" webkitAllowFullScreen mozallowfullscreen allowfullscreen></iframe>';
+  //     return '<img class="img" width="'+ w +'" height="'+ h +'" src="'+ id + '">';
+  //   },
+  //   link: function(user, photoId) {
+  //     return 'https://www.flickr.com/photos/' + user + '/' + photoId + '/';
+  //   }
+  // };
+
+
+  /////////////////////////////////////////////////////////////
   // MEDIA PLAYER INSTANCE
   /////////////////////////////////////////////////////////////
 
