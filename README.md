@@ -112,6 +112,18 @@ On it's own, an Embetter embed code is just a clickable thumbnail that takes you
   * Thumbnail aspect ratio:
     * 1:1
 
+##### Giphy
+  * Formats:
+    * `https://giphy.com/gifs/ken-lee-3ESp1RAn7PjOw`
+    * `https://giphy.com/gifs/3ESp1RAn7PjOw`
+  * Regex:
+    * `/(?:https?:\/\/)?(?:w{3}\.)?giphy.com\/gifs\/([a-zA-Z0-9_\-%]*)(?:\/?|$|\s|\?|#)/`
+    * Captures id: `3ESp1RAn7PjOw`
+  * API URL:
+    * None needed
+  * Thumbnail aspect ratio:
+    * Variable (matches original .gif)
+
 ##### Mixcloud
   * Formats:
     * `https://www.mixcloud.com/Davealex/davealex-30m-electro-2010/`
@@ -146,6 +158,17 @@ On it's own, an Embetter embed code is just a clickable thumbnail that takes you
     * None needed
   * Thumbnail aspect ratio:
     * 1024:600
+
+##### Shadertoy
+  * Formats:
+    * `https://www.shadertoy.com/view/4dfGzs`
+  * Regex:
+    * `/(?:https?:\/\/)?(?:w{3}\.)?shadertoy.com\/view\/([a-zA-Z0-9_\-%]*)(?:\/?|$|\s|\?|#)/`
+    * Captures id: `4dfGzs`
+  * API URL:
+    * None needed
+  * Thumbnail aspect ratio:
+    * 16:9
 
 ##### Bandcamp
   * Formats:
