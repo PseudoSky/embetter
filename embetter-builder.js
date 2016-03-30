@@ -391,6 +391,20 @@
     }
   });
 
+  embetter.utils.copyPropsToObject(embetter.services.kuula, {
+    getData: function(id) {
+      return 'https://kuula.co/cover/'+id;
+    },
+    buildFromText: function(text, containerEl) {
+      var postId = text.match(this.regex)[1];
+      if(postId != null) {
+        var postURL = this.link(postId);
+        var postThumbnail = this.getData(postId);
+        embetter.utils.embedPlayerInContainer(containerEl, this, postURL, postThumbnail, postId);
+      }
+    }
+  });
+
   // embetter.utils.copyPropsToObject(embetter.services.flickr, {
   //   getData: function(mediaUrl, callback) {
   //     reqwest({
