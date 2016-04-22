@@ -33,7 +33,7 @@
       <div class="row">
         <div class="twelve columns">
           <label for="pasteMediaUrl">Paste a media URL to build an Embetter player:</label>
-          <input class="u-full-width" type="email" placeholder="Vimeo, YouTube, Instagram, Giphy, Shadertoy, Dailymotion, Kuula, or CodePen URL" id="pasteMediaUrl">
+          <input class="u-full-width" type="email" placeholder="Vimeo, YouTube, Instagram, Giphy, Shadertoy, Mixcloud, Dailymotion, Kuula, or CodePen URL" id="pasteMediaUrl">
         </div>
       </div>
       <div class="row">
@@ -82,7 +82,6 @@
         window.embetter.services.giphy,
         window.embetter.services.shadertoy,
         window.embetter.services.kuula
-        // window.embetter.services.flickr
       ];
       window.embetter.utils.initMediaPlayers(pageEl, curServices);
 
@@ -108,7 +107,6 @@
       window.embetter.services.vine.buildFromText('https://vine.co/v/eWlADOIAEAd', testEmbedsEl, './sample-data/vine.json');
       window.embetter.services.slideshare.buildFromText('http://www.slideshare.net/HunterLoftis1/forwardjs-we-will-all-be-game-developers', testEmbedsEl, './sample-data/slideshare.json');
       window.embetter.services.kuula.buildFromText('https://kuula.co/post/7fWCl', testEmbedsEl);
-      // window.embetter.services.flickr.buildFromText('https://www.flickr.com/photos/cacheflowe/11293912015/', testEmbedsEl);
 
       /////////////////////////////////////////////////////////////
       // LISTEN FOR URL PASTE INTO INPUT FIELD FOR DEMO
